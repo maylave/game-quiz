@@ -1,0 +1,77 @@
+[
+  {
+    "id": "default-html",
+    "title": "HTML Основы",
+    "description": "Базовые вопросы по структуре HTML документа.",
+    "shuffle": false,
+    "questions": [
+      {
+        "id": 1,
+        "text": "Какой тег используется для самого крупного заголовка?",
+        "type": "input",
+        "correctAnswer": "h1"
+      },
+      {
+        "id": 2,
+        "text": "Выберите тег для нумерованного списка:",
+        "type": "choice",
+        "options": [
+          "<ul>",
+          "<ol>",
+          "<li>"
+        ],
+        "correctAnswer": "<ol>"
+      },
+      {
+        "id": 3,
+        "text": "Расставьте структуру документа:",
+        "type": "drag",
+        "correctOrder": [
+          "<html>",
+          "<head>",
+          "<body>"
+        ],
+        "shuffled": []
+      }
+    ]
+  },
+  {
+    "id": "default-css",
+    "title": "CSS Стили",
+    "description": "Проверка знаний каскадных таблиц стилей.",
+    "shuffle": true,
+    "questions": [
+      {
+        "id": 1,
+        "text": "Как сделать текст жирным?",
+        "type": "input",
+        "correctAnswer": "font-weight"
+      },
+      {
+        "id": 2,
+        "text": "Что означает CSS?",
+        "type": "choice",
+        "options": [
+          "Computer Style Sheets",
+          "Cascading Style Sheets",
+          "Creative Style System"
+        ],
+        "correctAnswer": "Cascading Style Sheets"
+      }
+    ]
+  },
+  {
+    "id": "1778087551216",
+    "title": "test",
+    "description": "",
+    "shuffle": false,
+    "questions": [
+      {
+        "id": 1778087564200,
+        "text": "test",
+        "type": "input",
+        "correctAnswer": ""
+      }
+    ]
+  }
+]
