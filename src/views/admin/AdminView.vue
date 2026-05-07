@@ -299,28 +299,17 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
 // --- STATE MANAGEMENT ---
-const currentView = ref('dashboard') // dashboard, editor, player
+const currentView = ref('dashboard') 
 
-// Data Structure: Array of Tests
-const tests = ref([
-  {
-    id: 'default-html',
-    title: 'HTML Основы',
-    description: 'Базовые вопросы по структуре HTML документа.',
-    shuffle: false,
-    questions: [
-      { id: 1, text: 'Какой тег используется для самого крупного заголовка?', type: 'input', correctAnswer: 'h1' },
-      { id: 2, text: 'Выберите тег для нумерованного списка:', type: 'choice', options: ['<ul>', '<ol>', '<li>'], correctAnswer: '<ol>' },
-      { id: 3, text: 'Расставьте структуру документа:', type: 'drag', correctOrder: ['<html>', '<head>', '<body>'], shuffled: [] }
-    ]
-  }
-])
+// Данные теперь пустые изначально, загрузятся с сервера
+const tests = ref([])
+const isLoading = ref(true)
 
 // Editor State
 const editingTest = reactive({ id: null, title: '', description: '', shuffle: false, questions: [] })
@@ -337,24 +326,61 @@ const scoreCount = ref(0)
 const dragItems = ref([])
 let dragSrcIndex = null
 
-// --- COMPUTED ---
-const currentQ = computed(() => activeQuestions.value[currentQIndex.value] || {})
-const isFinished = computed(() => currentQIndex.value >= activeQuestions.value.length)
-const score = computed(() => activeQuestions.value.length ? Math.round((scoreCount.value / activeQuestions.value.length) * 100) : 0)
-const canCheck = computed(() => {
-  if (currentQ.value.type === 'drag') return true // Always checkable
-  return !!userAnswer.value
-})
+// --- API FUNCTIONS ---
+const fetchTests = async () => {
+  try {
+    const res = await fetch('/api/tests')
+    const data = await res.json()
+    tests.value = data
+    // Если база пуста, создадим дефолтный тест (опционально)
+    if (data.length === 0) {
+       createDefaultTest()
+    }
+  } catch (e) {
+    console.error("Ошибка загрузки тестов", e)
+  } finally {
+    isLoading.value = false
+  }
+}
 
-// --- AUTH CHECK ---
+const saveTestsToServer = async () => {
+  try {
+    await fetch('/api/tests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(tests.value)
+    })
+  } catch (e) {
+    console.error("Ошибка сохранения", e)
+    alert("Не удалось сохранить изменения на сервере!")
+  }
+}
+
+const createDefaultTest = () => {
+   const newTest = {
+    id: Date.now().toString(),
+    title: 'HTML Основы (Пример)',
+    description: 'Базовые вопросы.',
+    shuffle: false,
+    questions: [
+      { id: 1, text: 'Какой тег для заголовка?', type: 'input', correctAnswer: 'h1' }
+    ]
+  }
+  tests.value.push(newTest)
+  saveTestsToServer()
+}
+
+// --- AUTH CHECK & INIT ---
 onMounted(() => {
   const role = localStorage.getItem('userRole')
   if (role !== 'admin') {
     router.push('/login')
+  } else {
+    fetchTests() // Загружаем данные с сервера при входе
   }
 })
 
-// --- LOGOUT ACTION ---
+// --- LOGOUT ---
 const logout = () => {
   localStorage.removeItem('tempStudentName')
   localStorage.removeItem('userRole')
@@ -371,12 +397,14 @@ const createNewTest = () => {
     questions: []
   }
   tests.value.push(newTest)
+  saveTestsToServer() // Сразу сохраняем
   editTest(newTest.id)
 }
 
 const editTest = (id) => {
   const test = tests.value.find(t => t.id === id)
   if (!test) return
+  // Клонируем объект, чтобы редактировать копию
   Object.assign(editingTest, JSON.parse(JSON.stringify(test)))
   currentView.value = 'editor'
   editingQuestionId.value = null
@@ -385,23 +413,26 @@ const editTest = (id) => {
 const deleteTest = (id) => {
   if(confirm('Удалить этот тест?')) {
     tests.value = tests.value.filter(t => t.id !== id)
+    saveTestsToServer() // Сохраняем удаление
   }
 }
 
 const saveCurrentTest = () => {
   const idx = tests.value.findIndex(t => t.id === editingTest.id)
   if (idx !== -1) {
+    // Обновляем тест в массиве
     tests.value[idx] = JSON.parse(JSON.stringify(editingTest))
+    saveTestsToServer() // Сохраняем на сервер
   }
 }
 
-// Watch editingTest to auto-save changes
+// Автосохранение при изменении редактируемого теста
 watch(editingTest, () => {
   if (currentView.value === 'editor') saveCurrentTest()
 }, { deep: true })
 
 
-// --- ACTIONS: EDITOR ---
+// --- ACTIONS: EDITOR (Без изменений логики, только сохранение) ---
 const addQuestion = () => {
   editingTest.questions.push({
     id: Date.now(),
@@ -544,13 +575,13 @@ const nextQuestion = () => {
   }
 }
 
-// --- IMPORT / EXPORT ---
+// --- IMPORT / EXPORT (Опционально, можно оставить для резервных копий) ---
 const exportAllData = () => {
   const blob = new Blob([JSON.stringify(tests.value, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = 'tests.json' // Имя файла для public папки
+  a.download = 'backup_tests.json'
   a.click()
 }
 
@@ -563,7 +594,8 @@ const importAllData = (e) => {
       const parsed = JSON.parse(ev.target.result)
       if (Array.isArray(parsed)) {
         tests.value = parsed
-        alert('База данных успешно загружена!')
+        saveTestsToServer() // Сохраняем импортированное на сервер
+        alert('База данных загружена и сохранена на сервере!')
       }
     } catch (err) {
       alert('Ошибка файла')
