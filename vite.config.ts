@@ -7,7 +7,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
 	plugins: [vue(), mode === 'development' && vueDevTools(), tailwindcss()],
-	base: '/game-quiz',
+	base: '/',
 	resolve: {
 		alias: {
 			'@': fileURLToPath(new URL('./src', import.meta.url))
