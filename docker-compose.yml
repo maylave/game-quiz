@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:stable-alpine
+    container_name: vue-frontend
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      # Папка dist должна лежать рядом с этим файлом docker-compose.yml
+      #- ./dist:/usr/share/nginx/html:ro
+      # Если нужен кастомный конфиг (для Vue Router history mode), раскомментируй строку ниже:
+       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
