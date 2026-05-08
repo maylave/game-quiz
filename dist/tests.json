@@ -61,6 +61,74 @@
     ]
   },
   {
+    "id": "css-flexbox-froggy",
+    "title": "CSS Flexbox (Froggy Level)",
+    "description": "Тест на знание свойств Flexbox: выравнивание, оси, порядок и распределение пространства.",
+    "shuffle": false,
+    "questions": [
+      {
+        "id": 1,
+        "text": "У вас есть контейнер с flex-direction: row. Какое свойство нужно применить к родителю, чтобы прижать все элементы к правому краю?",
+        "type": "choice",
+        "options": [
+          "align-items: flex-end",
+          "justify-content: flex-end",
+          "justify-content: space-between",
+          "align-self: flex-end"
+        ],
+        "correctAnswer": "justify-content: flex-end"
+      },
+      {
+        "id": 2,
+        "text": "Элементы имеют разную высоту. Какое свойство родителя выровняет их по вертикальному центру (поперечная ось)?",
+        "type": "choice",
+        "options": [
+          "justify-content: center",
+          "align-items: center",
+          "align-content: center",
+          "vertical-align: middle"
+        ],
+        "correctAnswer": "align-items: center"
+      },
+      {
+        "id": 3,
+        "text": "Как визуально поменять местами первый и последний элемент во флекс-контейнере, не меняя HTML?",
+        "type": "choice",
+        "options": [
+          "Использовать z-index",
+          "Использовать свойство order",
+          "Использовать float: right",
+          "Это невозможно без изменения HTML"
+        ],
+        "correctAnswer": "Использовать свойство order"
+      },
+      {
+        "id": 4,
+        "text": "Есть два элемента. Как сделать так, чтобы второй занимал в два раза больше свободного пространства, чем первый?",
+        "type": "choice",
+        "options": [
+          "Первому flex-grow: 1, второму flex-grow: 2",
+          "Первому width: 33%, второму width: 66%",
+          "Второму flex-shrink: 0.5",
+          "Обоим align-self: stretch"
+        ],
+        "correctAnswer": "Первому flex-grow: 1, второму flex-grow: 2"
+      },
+      {
+        "id": 5,
+        "text": "Контейнер имеет flex-wrap: wrap и фиксированную высоту. Как распределить сами ряды (строки) так, чтобы между ними было равное пространство, а крайние ряды прижаты к краям контейнера?",
+        "type": "choice",
+        "options": [
+          "align-items: space-between",
+          "justify-content: space-between",
+          "align-content: space-between",
+          "flex-flow: column-reverse"
+        ],
+        "correctAnswer": "align-content: space-between"
+      }
+    ]
+  },
+  {
     "id": "1778087551216",
     "title": "test",
     "description": "",
