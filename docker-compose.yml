@@ -1,18 +1,19 @@
 version: '3.8'
 
 services:
-  nginx:
-    image: nginx:stable-alpine
+  # Сервис фронтенда теперь сам себя собирает и раздает
+  frontend:
+    build:
+      context: ./frontend # Путь к папке с Vue проектом и Dockerfile
+      dockerfile: Dockerfile
     container_name: vue-frontend
     restart: always
     ports:
       - '80:80'
-    volumes:
-      - ./dist:/usr/share/nginx/html:ro
-      # Пробрасываем конфиг nginx, чтобы он пересылал запросы /api на python
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - api
+    networks:
+      - app-network
 
   api:
     image: python:3.10-slim
@@ -21,10 +22,15 @@ services:
     working_dir: /app
     volumes:
       - ./api:/app
-      # Сохраняем JSON в папке api на сервере, чтобы он не терялся
       - ./api/tests.json:/app/tests.json
-    command:
-      sh -c "pip install -r requirements.txt && uvicorn main:app --host 0.0.0.0
-      --port 8000"
+    command: >
+      sh -c "pip install -r requirements.txt && 
+             uvicorn main:app --host 0.0.0.0 --port 8000"
     expose:
       - '8000'
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
