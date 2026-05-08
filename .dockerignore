@@ -1,9 +1,0 @@
-node_modules
-.git
-.vscode
-dist
-test
-.github
-README.md
-.env*
-*.log

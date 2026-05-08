@@ -49,15 +49,15 @@
             <h1 class="text-2xl font-bold mb-2">Доступные тесты</h1>
             <p class="text-zinc-500 text-sm">Выберите тему для прохождения:</p>
           </div>
-          <!-- Кнопка принудительного обновления (если обновили файл на сервере) -->
-          <button @click="loadTestsFromPublic" class="text-xs text-zinc-500 hover:text-amber-500 flex items-center gap-1 transition">
+          <!-- Кнопка обновления списка с сервера -->
+          <button @click="fetchTests" class="text-xs text-zinc-500 hover:text-amber-500 flex items-center gap-1 transition">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-            Обновить список
+            Обновить
           </button>
         </div>
         
         <div v-if="loading" class="text-center py-10 text-zinc-500 animate-pulse">
-          Загрузка тестов...
+          Загрузка тестов с сервера...
         </div>
 
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -85,7 +85,7 @@
               </span>
             </div>
 
-            <button @click="startTest(test.id)" 
+            <button @click="startTest(test)" 
               class="mt-auto w-full py-2.5 rounded-lg bg-zinc-700 hover:bg-amber-500 hover:text-zinc-900 text-zinc-200 text-sm font-bold transition-all flex items-center justify-center gap-2">
               <span>Начать</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -95,7 +95,7 @@
           <!-- Empty State -->
           <div v-if="tests.length === 0" class="col-span-full py-20 text-center border-2 border-dashed border-zinc-800 rounded-xl">
             <p class="text-zinc-500">Нет доступных тестов.</p>
-            <p class="text-xs text-zinc-600 mt-2">Убедитесь, что файл public/tests.json существует.</p>
+            <p class="text-xs text-zinc-600 mt-2">Администратор еще не добавил ни одного теста.</p>
           </div>
         </div>
       </div>
@@ -239,33 +239,24 @@ const canCheck = computed(() => {
   return !!userAnswer.value
 })
 
-// --- LOAD TESTS FROM PUBLIC FOLDER ---
-const loadTestsFromPublic = async () => {
+// --- API FUNCTIONS ---
+const fetchTests = async () => {
   loading.value = true
   try {
-    // Путь к файлу в папке public. 
-    // Если файл лежит в public/tests.json, то путь просто '/tests.json'
-    const response = await fetch('/tests.json')
-    
-    if (!response.ok) throw new Error('Файл не найден')
-    
-    const data = await response.json()
-    if (Array.isArray(data)) {
-      tests.value = data
-    } else {
-      console.error('Неверный формат JSON')
-      tests.value = []
-    }
+    // Запрос к нашему Python API
+    const res = await fetch('/api/tests')
+    if (!res.ok) throw new Error('Network response was not ok')
+    const data = await res.json()
+    tests.value = data
   } catch (error) {
-    console.error('Ошибка загрузки тестов:', error)
-    // Если файла нет, можно оставить пустым или показать сообщение
-    tests.value = [] 
+    console.error("Ошибка загрузки тестов:", error)
+    tests.value = []
   } finally {
     loading.value = false
   }
 }
 
-// --- AUTH CHECK ---
+// --- AUTH CHECK & INIT ---
 onMounted(async () => {
   const name = localStorage.getItem('tempStudentName')
   
@@ -276,8 +267,8 @@ onMounted(async () => {
   
   studentName.value = name
   
-  // Загружаем тесты при старте
-  await loadTestsFromPublic()
+  // Загружаем тесты с сервера при старте
+  await fetchTests()
 })
 
 // --- LOGOUT ACTION ---
@@ -287,10 +278,7 @@ const logout = () => {
 }
 
 // --- ACTIONS: PLAYER ---
-const startTest = (id) => {
-  const test = tests.value.find(t => t.id === id)
-  if (!test) return
-  
+const startTest = (test) => {
   activeTest.value = test
   let qs = [...test.questions]
   if (test.shuffle) {
@@ -305,7 +293,7 @@ const startTest = (id) => {
 }
 
 const restartTest = () => {
-  if(activeTest.value) startTest(activeTest.value.id)
+  if(activeTest.value) startTest(activeTest.value)
 }
 
 const resetQuestionState = () => {
