@@ -1,12 +1,11 @@
 version: '3.8'
 
 services:
-  # Сервис фронтенда теперь сам себя собирает и раздает
   frontend:
     build:
-      context: ./frontend # Путь к папке с Vue проектом и Dockerfile
-      dockerfile: Dockerfile
-    container_name: vue-frontend
+      context: ./frontend
+      dockerfile: Dockerfile.prod # Используем отдельный Dockerfile для продакшена (см. ниже)
+    container_name: quiz-frontend-prod
     restart: always
     ports:
       - '80:80'
@@ -14,22 +13,35 @@ services:
       - api
     networks:
       - app-network
+    # Для продакшена можно добавить healthcheck
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   api:
-    image: python:3.10-slim
-    container_name: quiz-api
+    build:
+      context: ./api
+      dockerfile: Dockerfile.prod # Используем отдельный Dockerfile для продакшена
+    container_name: quiz-api-prod
     restart: always
-    working_dir: /app
+    # В продакшене мы НЕ монтируем volumes с кодом, чтобы избежать изменений на лету
+    # Если нужно сохранять tests.json, используем именованный том
     volumes:
-      - ./api:/app
-      - ./api/tests.json:/app/tests.json
-    command: >
-      sh -c "pip install -r requirements.txt && 
-             uvicorn main:app --host 0.0.0.0 --port 8000"
-    expose:
-      - '8000'
+      - quiz-data:/app/data 
+    environment:
+      - ENVIRONMENT=production
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  quiz-data: # Именованный том для хранения данных (tests.json)
 
 networks:
   app-network:
