@@ -1,1 +1,44 @@
-[]
+[
+  {
+    "id": 1,
+    "text": "Какой тег используется для создания <strong>самого крупного</strong> заголовка?",
+    "type": "input",
+    "correctAnswer": "h1"
+  },
+  {
+    "id": 2,
+    "text": "Выберите правильный тег для создания <u>нумерованного</u> списка:",
+    "type": "choice",
+    "options": [
+      "<ul>",
+      "<ol>",
+      "<li>",
+      "<dl>"
+    ],
+    "correctAnswer": "<ol>"
+  },
+  {
+    "id": 3,
+    "text": "Какой атрибут используется для указания ссылки в теге <code>&lt;a&gt;</code>?",
+    "type": "input",
+    "correctAnswer": "href"
+  },
+  {
+    "id": 4,
+    "text": "Какой тег делает текст <b>жирным</b> (семантически важным)?",
+    "type": "choice",
+    "options": [
+      "<i>",
+      "<b>",
+      "<strong>",
+      "<bold>"
+    ],
+    "correctAnswer": "<strong>"
+  },
+  {
+    "id": 5,
+    "text": "Напишите тег для вставки изображения.",
+    "type": "input",
+    "correctAnswer": "img"
+  }
+]
