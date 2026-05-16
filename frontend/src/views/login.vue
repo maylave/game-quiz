@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-zinc-900 flex items-center justify-center p-4 font-sans relative overflow-hidden">
     
-  
+    <!-- Background Effects -->
     <div class="fixed inset-0 opacity-20 pointer-events-none"
       style="background-image: radial-gradient(circle, #52525b 1px, transparent 1px); background-size: 28px 28px;"></div>
     
@@ -18,102 +18,138 @@
           </svg>
         </div>
         <h1 class="text-xl font-bold text-white tracking-tight">Quiz Master</h1>
-        
       </div>
 
       <!-- Tabs Switcher -->
       <div class="flex border-b border-zinc-700 bg-zinc-800">
         <button 
-          @click="mode = 'student'"
+          @click="mode = 'login'"
           class="flex-1 py-4 text-sm font-medium transition-all duration-200 focus:outline-none relative"
-          :class="mode === 'student' ? 'text-amber-500 bg-zinc-700/30' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/20'"
+          :class="mode === 'login' ? 'text-amber-500 bg-zinc-700/30' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/20'"
         >
-          Студент
-          <div v-if="mode === 'student'" class="absolute bottom-0 left-0 w-full h-0.5 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
+          Вход
+          <div v-if="mode === 'login'" class="absolute bottom-0 left-0 w-full h-0.5 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
         </button>
         <button 
-          @click="mode = 'admin'"
+          @click="mode = 'register'"
           class="flex-1 py-4 text-sm font-medium transition-all duration-200 focus:outline-none relative"
-          :class="mode === 'admin' ? 'text-indigo-400 bg-zinc-700/30' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/20'"
+          :class="mode === 'register' ? 'text-indigo-400 bg-zinc-700/30' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-700/20'"
         >
-          Администратор
-          <div v-if="mode === 'admin'" class="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"></div>
+          Регистрация
+          <div v-if="mode === 'register'" class="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]"></div>
         </button>
       </div>
 
       <div class="p-8">
         
-        <!-- STUDENT MODE -->
-        <div v-if="mode === 'student'" class="animate-fade-in">
+        <!-- LOGIN MODE -->
+        <div v-if="mode === 'login'" class="animate-fade-in">
           <div class="text-center mb-6">
-            
+            <h2 class="text-lg font-bold text-zinc-100">С возвращением!</h2>
+            <p class="text-zinc-500 text-xs mt-1">Введите свои данные для входа</p>
           </div>
 
-          <form @submit.prevent="startTest" class="space-y-4">
+          <form @submit.prevent="handleLogin" class="space-y-4">
             <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">Имя</label>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">Логин</label>
               <input 
-                v-model="student.firstName" 
+                v-model="loginForm.login" 
                 type="text" 
                 required
+                autocomplete="username"
                 class="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none text-zinc-200 placeholder-zinc-600 transition-colors"
-                placeholder="Например: Иван"
+                placeholder="admin или student"
               >
             </div>
 
-            <div>
-              <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">Фамилия</label>
-              <input 
-                v-model="student.lastName" 
-                type="text" 
-                required
-                class="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none text-zinc-200 placeholder-zinc-600 transition-colors"
-                placeholder="Например: Иванов"
-              >
-            </div>
-
-            <button 
-              type="submit"
-              class="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-zinc-900 font-bold rounded-lg shadow-lg shadow-amber-500/20 transition transform active:scale-[0.98] flex items-center justify-center gap-2 mt-2"
-            >
-              <span>Войти как студент</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </button>
-          </form>
-        </div>
-
-        <!-- ADMIN MODE -->
-        <div v-else class="animate-fade-in">
-          <div class="text-center mb-6">
-            <h2 class="text-lg font-bold text-zinc-100">Панель управления</h2>
-            <p class="text-zinc-500 text-xs mt-1">Доступ только для преподавателей</p>
-          </div>
-
-          <form @submit.prevent="loginAdmin" class="space-y-4">
             <div>
               <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">Код доступа</label>
               <input 
-                v-model="adminCode" 
+                v-model="loginForm.code" 
                 type="password" 
                 required
-                class="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-zinc-200 text-center tracking-[0.5em] placeholder-zinc-700 transition-colors"
-                placeholder="Введите код доступа"
+                autocomplete="current-password"
+                class="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none text-zinc-200 placeholder-zinc-600 transition-colors"
+                placeholder="••••••••"
               >
             </div>
 
-            <div v-if="error" class="bg-red-950/50 border border-red-900/50 text-red-400 text-xs text-center p-3 rounded-lg animate-pulse">
+            <div v-if="error" class="bg-red-950/50 border border-red-900/50 text-red-400 text-xs text-center p-3 rounded-lg">
               {{ error }}
             </div>
 
             <button 
               type="submit"
-              class="w-full py-3.5 bg-zinc-700 hover:bg-zinc-600 text-white font-bold rounded-lg shadow-lg transition transform active:scale-[0.98] flex items-center justify-center gap-2 mt-2"
+              :disabled="authStore.isLoading"
+              class="w-full py-3.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-900 font-bold rounded-lg shadow-lg shadow-amber-500/20 transition transform active:scale-[0.98] flex items-center justify-center gap-2 mt-2"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              <span>Войти в систему</span>
+              <span v-if="!authStore.isLoading">Войти</span>
+              <span v-else>Проверка...</span>
+              <svg v-if="!authStore.isLoading" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </button>
-            
-           
+          </form>
+        </div>
+
+        <!-- REGISTER MODE -->
+        <div v-else class="animate-fade-in">
+          <div class="text-center mb-6">
+            <h2 class="text-lg font-bold text-zinc-100">Новый аккаунт</h2>
+            <p class="text-zinc-500 text-xs mt-1">Заполните данные для регистрации</p>
+          </div>
+
+          <form @submit.prevent="handleRegister" class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">Имя</label>
+              <!-- ИСПРАВЛЕНО: вызываем локальную функцию-обертку -->
+              <input 
+                v-model="registerForm.name" 
+                @input="handleNameInput"
+                type="text" 
+                required
+                class="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none text-zinc-200 placeholder-zinc-600 transition-colors"
+                placeholder="Иван Иванов"
+              >
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">Логин</label>
+              <div class="relative">
+                <!-- ИСПРАВЛЕНО: v-model привязан к переменной, а не к функции -->
+                <input 
+                  v-model="registerForm.login" 
+                  type="text" 
+                  required
+                  class="w-full px-4 py-3 bg-zinc-900/50 border border-zinc-700 rounded-lg text-zinc-400 cursor-not-allowed"
+                  readonly
+                  placeholder="Генерируется автоматически"
+                >
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">Код</label>
+              <input 
+                v-model="registerForm.code" 
+                type="password" 
+                required
+                class="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none text-zinc-200 placeholder-zinc-600 transition-colors"
+                placeholder="Минимум 6 символов"
+              >
+            </div>
+
+            <div v-if="error" class="bg-red-950/50 border border-red-900/50 text-red-400 text-xs text-center p-3 rounded-lg">
+              {{ error }}
+            </div>
+
+            <button 
+              type="submit"
+              :disabled="authStore.isLoading"
+              class="w-full py-3.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow-lg shadow-amber-500/20 transition transform active:scale-[0.98] flex items-center justify-center gap-2 mt-2"
+            >
+              <span v-if="!authStore.isLoading">Зарегистрироваться</span>
+              <span v-else>Создание...</span>
+              <svg v-if="!authStore.isLoading" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+            </button>
           </form>
         </div>
 
@@ -122,48 +158,62 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { useAuthStore } from '@/stores/auth.store'
+import type { loginForm, RegisterForm } from '@/types/user'
+import { generateLoginFromName } from '@/utils/translit'
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const mode = ref('student') // 'student' или 'admin'
-const adminCode = ref('')
-const error = ref('')
+const authStore = useAuthStore()
 
-const student = reactive({
-  firstName: '',
-  lastName: ''
+const mode = ref<'login' | 'register'>('login')
+const error = ref<string | null>(null)
+
+// Формы
+const loginForm = reactive<loginForm>({
+  login: '',
+  code: ''
 })
 
-// Логика для студента
-const startTest = () => {
-  const fullName = `${student.firstName.trim()} ${student.lastName.trim()}`
-  
-  // Сохраняем имя студента и роль
-  localStorage.setItem('tempStudentName', fullName)
-  localStorage.setItem('userRole', 'student')
-  
-  // Перенаправляем на страницу студента (Dashboard)
-  router.push('/')
+const registerForm = reactive<RegisterForm>({
+  name: '',
+  login: '',
+  code: '',
+  role: 'student'
+})
+
+// Функция-обертка для генерации логина
+const handleNameInput = () => {
+  if (registerForm.name) {
+    registerForm.login = generateLoginFromName(registerForm.name)
+  } else {
+    registerForm.login = ''
+  }
 }
 
-// Логика для админа
-const loginAdmin = () => {
-  // ПАРОЛЬ: may123
-  if (adminCode.value === 'may123') {
-    localStorage.setItem('tempStudentName', 'Администратор')
-    localStorage.setItem('userRole', 'admin')
-    
-    // Очищаем ошибку и пароль
-    error.value = ''
-    adminCode.value = ''
-    
-    // Перенаправляем в админку
-    router.push('/admin')
-  } else {
-    error.value = 'Неверный код доступа'
-    adminCode.value = ''
+const handleLogin = async () => {
+  error.value = null
+  try {
+    await authStore.loginAction(loginForm)
+    if (authStore.user) {
+      router.push(authStore.isAdmin ? '/admin' : '/')
+    }
+  } catch (e: any) {
+    error.value = e.message || 'Ошибка входа'
+  }
+}
+
+const handleRegister = async () => {
+  error.value = null
+  try {
+    await authStore.registerAction(registerForm)
+    if (authStore.user) {
+      router.push(authStore.isAdmin ? '/admin' : '/')
+    }
+  } catch (e: any) {
+    error.value = e.message || 'Ошибка регистрации'
   }
 }
 </script>

@@ -1,22 +1,32 @@
+// router/index.ts
+import AdminView from '@/views/admin/AdminView.vue'
 import HomeView from '@/views/HomeView.vue'
 import LoginView from '@/views/login.vue'
+import QuizzesView from '@/views/QuizzesView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
-
 const routes = [
 	{
 		path: '/',
+		name: 'Home',
 		component: HomeView,
-		// Можно защитить и главную, если хотите, чтобы студенты тоже логинились
 		meta: { requiresAuth: true }
 	},
 	{
 		path: '/login',
+		name: 'Login',
 		component: LoginView
 	},
 	{
+		path: '/quizzes',
+		name: 'Quizzes',
+		component: QuizzesView,
+		meta: { requiresAuth: true }
+	},
+	{
 		path: '/admin',
-		component: () => import('@/views/admin/AdminView.vue'),
-		meta: { requiresAdmin: true } // Помечаем маршрут как "Только для админов"
+		name: 'Admin',
+		component: AdminView,
+		meta: { requiresAdmin: true }
 	}
 ]
 
@@ -25,28 +35,36 @@ export const router = createRouter({
 	routes
 })
 
-// --- ЗАЩИТА МАРШРУТОВ ---
-router.beforeEach((to, from, next) => {
-	// Получаем роль из localStorage
-	const userRole = localStorage.getItem('userRole')
+// Используем async и возвращаем значения вместо next()
+router.beforeEach(async to => {
+	const { useAuthStore } = await import('@/stores/auth.store')
+	const authStore = useAuthStore()
 
-	// Проверяем, требует ли маршрут прав админа
+	// 1. Маршрут требует прав АДМИНА
 	if (to.meta.requiresAdmin) {
-		if (userRole === 'admin') {
-			next() // Пускаем админа
-		} else {
-			next('/login') // Всех остальных отправляем на логин
+		if (!authStore.isAuthenticated) {
+			return '/login' // Возвращаем путь для редиректа
 		}
-	}
-	// Проверяем, требует ли маршрут просто авторизации (для студентов)
-	else if (to.meta.requiresAuth) {
-		const studentName = localStorage.getItem('tempStudentName')
-		if (studentName) {
-			next() // Пускаем студента
-		} else {
-			next('/login') // Отправляем на логин
+		if (!authStore.isAdmin) {
+			return '/' // Если не админ, кидаем на главную
 		}
-	} else {
-		next() // Для публичных страниц (например, /login) пускаем всех
+		// Если все ок, возвращаем undefined (или ничего), чтобы продолжить навигацию
+		return
 	}
+
+	// 2. Маршрут требует АВТОРИЗАЦИИ
+	if (to.meta.requiresAuth) {
+		if (!authStore.isAuthenticated) {
+			return '/login'
+		}
+		return
+	}
+
+	// 3. Уже авторизован и пытается зайти на /login
+	if (to.path === '/login' && authStore.isAuthenticated) {
+		return authStore.isAdmin ? '/admin' : '/'
+	}
+
+	// 4. Публичные страницы - разрешаем доступ
+	return
 })

@@ -1,34 +1,38 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends  # <--- ДОБАВЬ Depends СЮДА
 from fastapi.middleware.cors import CORSMiddleware
-import json
-import os
-from typing import Any, List
+from config import settings
 
-app = FastAPI()
+# Импорт роутеров
 
+from routers import auth, classes, tests
+
+# Импорт зависимости для проверки пользователя
+from dependencies import get_current_user
+
+app = FastAPI(title=settings.APP_NAME)
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-FILE_PATH = "tests.json"
+# Подключение роутеров
+app.include_router(auth.router)
+app.include_router(classes.router)
+app.include_router(tests.router)
+
+# Эндпоинт для проверки текущего пользователя
 
 
-@app.get("/tests")
-def get_tests():
-    if not os.path.exists(FILE_PATH):
-        return []
-    with open(FILE_PATH, "r", encoding="utf-8") as f:
-        try:
-            return json.load(f)
-        except:
-            return []
+@app.get("/user/me")
+def get_me(current_user: dict = Depends(get_current_user)):
+    return current_user
 
 
-@app.post("/tests")
-def save_tests(tests: List[Any]):  # Принимаем любой список — валидация не нужна
-    with open(FILE_PATH, "w", encoding="utf-8") as f:
-        json.dump(tests, f, ensure_ascii=False, indent=2)
-    return {"status": "ok"}
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
