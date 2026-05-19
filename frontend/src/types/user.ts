@@ -9,7 +9,7 @@ export interface loginForm {
 	code: string
 }
 export interface RegisterForm {
-	username: string
+	name: string
 	login: string
 	code: string
 	role: string

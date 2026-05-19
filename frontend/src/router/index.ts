@@ -1,4 +1,5 @@
 // router/index.ts
+import AdminUsers from '@/views/admin/AdminUsersViews.vue'
 import AdminView from '@/views/admin/AdminView.vue'
 import HomeView from '@/views/HomeView.vue'
 import LoginView from '@/views/login.vue'
@@ -27,6 +28,14 @@ const routes = [
 		name: 'Admin',
 		component: AdminView,
 		meta: { requiresAdmin: true }
+	},
+	{
+		path: '/admin/users',
+		name: 'user',
+		component: AdminUsers,
+		meta: {
+			requiresAdmin: true
+		}
 	}
 ]
 
@@ -41,24 +50,24 @@ router.beforeEach(async to => {
 	const authStore = useAuthStore()
 
 	// 1. Маршрут требует прав АДМИНА
-	if (to.meta.requiresAdmin) {
-		if (!authStore.isAuthenticated) {
-			return '/login' // Возвращаем путь для редиректа
-		}
-		if (!authStore.isAdmin) {
-			return '/' // Если не админ, кидаем на главную
-		}
-		// Если все ок, возвращаем undefined (или ничего), чтобы продолжить навигацию
-		return
-	}
+	// if (to.meta.requiresAdmin) {
+	// 	if (!authStore.isAuthenticated) {
+	// 		return '/login' // Возвращаем путь для редиректа
+	// 	}
+	// 	if (!authStore.isAdmin) {
+	// 		return '/' // Если не админ, кидаем на главную
+	// 	}
+	// 	// Если все ок, возвращаем undefined (или ничего), чтобы продолжить навигацию
+	// 	return
+	// }
 
 	// 2. Маршрут требует АВТОРИЗАЦИИ
-	if (to.meta.requiresAuth) {
-		if (!authStore.isAuthenticated) {
-			return '/login'
-		}
-		return
-	}
+	// if (to.meta.requiresAuth) {
+	// 	if (!authStore.isAuthenticated) {
+	// 		return '/login'
+	// 	}
+	// 	return
+	// }
 
 	// 3. Уже авторизован и пытается зайти на /login
 	if (to.path === '/login' && authStore.isAuthenticated) {

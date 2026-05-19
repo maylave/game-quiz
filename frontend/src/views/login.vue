@@ -181,7 +181,7 @@ const registerForm = reactive<RegisterForm>({
   name: '',
   login: '',
   code: '',
-  role: 'student'
+  role: 'admin'
 })
 
 // Функция-обертка для генерации логина

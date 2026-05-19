@@ -14,12 +14,14 @@
     </main>
   </div>
 </template>
-
 <script setup>
 import Header from '@/components/Header.vue'
+import { useAuthStore } from '@/stores/auth.store'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+
 const router = useRouter()
+const authStore = useAuthStore()
 
 // --- STATE MANAGEMENT ---
 const view = ref('dashboard')
@@ -66,13 +68,22 @@ const fetchTests = async () => {
 
 // --- AUTH CHECK & INIT ---
 onMounted(async () => {
-  const name = localStorage.getItem('tempStudentName')
+  // 1. Сначала проверяем, есть ли вообще объект user
+  if (!authStore.user) {
+    console.log(authStore.user)
+    router.push('/login')
+    return
+  }
+
+  // 2. Теперь безопасно берем username
+  const name = authStore.user.username
   
   if (!name) {
     router.push('/login')
     return
   }
   
+  console.log(name)
   studentName.value = name
   
   // Загружаем тесты с сервера при старте
@@ -81,7 +92,12 @@ onMounted(async () => {
 
 // --- LOGOUT ACTION ---
 const logout = () => {
+  // Если ты используешь Pinia persist, лучше использовать действие из стора для очистки
+  // authStore.logout() 
+  // Но если пока так:
   localStorage.removeItem('tempStudentName')
+  // Желательно также очистить стор, если там есть метод reset или logout
+  authStore.$reset() // Сбросит состояние стора к дефолтному
   router.push('/login')
 }
 

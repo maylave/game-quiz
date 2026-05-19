@@ -1,6 +1,6 @@
 import secrets
 import hashlib
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from database import get_db_connection
 import sqlite3
 
@@ -65,3 +65,37 @@ def verify_user(login: str, password: str) -> Optional[Dict]:
         return None
     finally:
         conn.close()
+
+
+def get_all_users() -> List[Dict]:
+    conn = get_db_connection()
+    rows = conn.execute(
+        "SELECT id, username, login, role FROM users").fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def delete_user(user_id: str) -> bool:
+    conn = get_db_connection()
+    cur = conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+    return cur.rowcount > 0
+
+
+def update_user(user_id: str, username: str = None, role: str = None) -> Dict:
+    conn = get_db_connection()
+    if username:
+        conn.execute("UPDATE users SET username=? WHERE id=?",
+                     (username, user_id))
+    if role:
+        conn.execute("UPDATE users SET role=? WHERE id=?", (role, user_id))
+    conn.commit()
+    row = conn.execute(
+        "SELECT id, username, login, role FROM users WHERE id=?", (user_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def set_user_role(user_id: str, new_role: str) -> Dict:
+    return update_user(user_id, role=new_role)

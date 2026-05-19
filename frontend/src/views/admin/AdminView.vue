@@ -5,51 +5,7 @@
       style="background-image: radial-gradient(circle, #52525b 1px, transparent 1px); background-size: 28px 28px;"></div>
 
     <!-- Top nav -->
-    <header class="sticky top-0 z-40 border-b border-zinc-700 bg-zinc-900/90 backdrop-blur">
-      <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-        <div class="flex items-center gap-3 cursor-pointer" @click="currentView = 'dashboard'">
-          <div class="w-7 h-7 rounded-md bg-indigo-500 flex items-center justify-center shrink-0">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-white">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-            </svg>
-          </div>
-          <span class="text-sm font-bold tracking-tight">Quiz Admin</span>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <!-- Navigation Buttons -->
-          <button v-if="currentView !== 'dashboard'" @click="currentView = 'dashboard'"
-            class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500 transition-colors">
-            К списку тестов
-          </button>
-          
-          <div v-if="currentView === 'dashboard'" class="flex gap-2">
-             <button @click="exportAllData" class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:text-zinc-200 transition">
-               Экспорт БД
-             </button>
-             <label class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:text-zinc-200 transition cursor-pointer">
-               Импорт БД
-               <input type="file" accept=".json" class="hidden" @change="importAllData">
-             </label>
-             <button @click="createNewTest" class="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Новый тест
-             </button>
-             
-             <!-- Logout Button for Admin -->
-             <button @click="logout" 
-               class="ml-4 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-900/50 text-red-400 hover:bg-red-950/30 transition-colors">
-               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                 <polyline points="16 17 21 12 16 7"/>
-                 <line x1="21" y1="12" x2="9" y2="12"/>
-               </svg>
-               Выйти
-             </button>
-          </div>
-        </div>
-      </div>
-    </header>
+    <Header/>
 
     <!-- Main Content Area -->
     <main class="max-w-5xl mx-auto px-6 py-8 relative z-10">
@@ -299,9 +255,9 @@
 </template>
 
 <script setup>
+import Header from '@/components/Header.vue'
 import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-
 const router = useRouter()
 
 // --- STATE MANAGEMENT ---

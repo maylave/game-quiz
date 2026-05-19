@@ -5,7 +5,7 @@
   >
     <div class="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
       
-      <!-- Логотип / Бренд -->
+
       <div class="flex items-center gap-3 cursor-pointer group" @click="goHome">
         <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 font-bold transition-transform group-hover:scale-105">
           QG
@@ -13,7 +13,7 @@
         <span class="text-sm font-bold tracking-tight text-zinc-200 group-hover:text-white transition-colors">Quiz Game</span>
       </div>
 
-      <!-- Навигация (Ссылки) -->
+      
       <nav class="hidden md:flex items-center gap-1">
         <template v-for="link in allowedLinks" :key="link.path">
           <router-link 
@@ -26,22 +26,22 @@
         </template>
       </nav>
 
-      <!-- Правая часть: Профиль и Выход -->
+      
       <div class="flex items-center gap-4">
         
-        <!-- Инфо о пользователе -->
+        
         <div v-if="userName" class="flex items-center gap-3 border-l border-zinc-700 pl-4">
            <div class="text-right hidden sm:block">
              <p class="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">{{ roleLabel }}</p>
              <p class="text-sm font-bold text-zinc-200 leading-none truncate max-w-[150px]">{{ userName }}</p>
            </div>
            
-           <!-- Аватарка (заглушка) -->
+           
            <div class="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-400 border border-zinc-600">
              {{ userName.charAt(0).toUpperCase() }}
            </div>
 
-           <!-- Кнопка выхода -->
+           
            <button 
              @click="handleLogout" 
              class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:text-red-400 hover:border-red-900/50 hover:bg-red-950/30 transition-all ml-1"
@@ -62,7 +62,7 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 const authStore = useAuthStore()
 
-// Конфигурация навигации
+
 const NAVIGATION_CONFIG = [
   { path: '/', label: 'Главная', roles: ['student', 'teacher', 'admin'] },
   { path: '/quizzes', label: 'Тесты', roles: ['student', 'teacher', 'admin'] },
@@ -85,7 +85,7 @@ defineProps({
 const userName = computed(() => authStore.user?.username )
 
 // Роль пользователя
-const userRole = computed(() => authStore.user?.role )
+const userRole = computed(() => authStore.user?.role || 'Студент')
 
 // Красивое название роли
 const roleLabel = computed(() => {

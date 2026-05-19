@@ -4,7 +4,7 @@ from config import settings
 
 # Импорт роутеров
 
-from routers import auth, classes, tests
+from routers import auth, classes, tests, admin
 
 # Импорт зависимости для проверки пользователя
 from dependencies import get_current_user
@@ -24,7 +24,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(classes.router)
 app.include_router(tests.router)
-
+app.include_router(admin.router, )
 # Эндпоинт для проверки текущего пользователя
 
 
