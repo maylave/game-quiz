@@ -1,6 +1,7 @@
 // router/index.ts
 import AdminUsers from '@/views/admin/AdminUsersViews.vue'
 import AdminView from '@/views/admin/AdminView.vue'
+import CoderView from '@/views/CoderView.vue'
 import HomeView from '@/views/HomeView.vue'
 import LoginView from '@/views/login.vue'
 import QuizzesView from '@/views/QuizzesView.vue'
@@ -21,6 +22,12 @@ const routes = [
 		path: '/quizzes',
 		name: 'Quizzes',
 		component: QuizzesView,
+		meta: { requiresAuth: true }
+	},
+	{
+		path: '/coder',
+		name: 'coder',
+		component: CoderView,
 		meta: { requiresAuth: true }
 	},
 	{

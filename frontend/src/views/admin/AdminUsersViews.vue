@@ -1,8 +1,8 @@
 <template>
-  <div class="min-h-screen bg-zinc-800/90 text-zinc-100 font-sans relative">
+  <div class="min-h-screen bg-zinc-900 text-zinc-100 font-sans relative">
     <!-- 1. Фон вынесен сюда, чтобы быть на весь экран -->
     <div class="fixed inset-0 opacity-20 pointer-events-none z-0"
-      style="background-image: radial-gradient(circle, #111 1px, transparent 1px); background-size: 28px 28px;">
+      style="background-image: radial-gradient(circle, #52525b 1px, transparent 1px); background-size: 28px 28px;">
     </div>
 
     <Header />
@@ -11,14 +11,14 @@
     <main class="max-w-6xl mx-auto px-6 py-8 relative z-10">
       
       <!-- Панель управления -->
-      <div class="flex justify-between items-center mb-6">
+      <div class="flex justify-center items-center mb-8">
         <h1 class="text-2xl font-bold text-zinc-100">Пользователи</h1>
       </div>
 
       <!-- Таблица пользователей -->
       <div class="overflow-x-auto rounded-xl border border-zinc-700 bg-zinc-800/50 shadow-xl backdrop-blur-sm">
         <table class="w-full text-left text-sm text-zinc-400">
-          <thead class="bg-zinc-950/50 text-xs uppercase text-zinc-300">
+          <thead class="bg-zinc-900/70 text-xs uppercase text-zinc-300">
             <tr>
               <th scope="col" class="px-6 py-4 font-semibold">Логин</th>
               <th scope="col" class="px-6 py-4 font-semibold">Имя</th>
@@ -27,20 +27,20 @@
             </tr>
           </thead>
           
-          <tbody class="divide-y divide-zinc-700/50">
+          <tbody class="divide-y  divide-zinc-700/50">
             <!-- 3. Добавлен :key="user.id" -->
             <tr 
               v-for="user in users" 
                
-              class="hover:bg-zinc-700/30 transition-colors duration-200"
+              class="hover:bg-zinc-700/30  transition-colors duration-200"
             >
-              <td class="px-6 py-4 font-medium text-zinc-200">
+              <td class="px-6 py-4 font-medium text-zinc-200 border-r border-dashed border-zinc-600/40">
                 {{ user.login }}
               </td>
-              <td class="px-6 py-4">
+              <td class="px-6 py-4  border-r border-dashed  border-zinc-600/40">
                 {{ user.username }}
               </td>
-              <td class="px-6 py-4">
+              <td class="px-6 py-4  border-r border-dashed border-zinc-600/40">
                 <span 
                   class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border"
                   :class="{
