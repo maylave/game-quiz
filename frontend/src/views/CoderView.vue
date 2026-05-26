@@ -1,84 +1,143 @@
 <script setup lang="ts">
 import InputCode from '@/components/coder/inputCode.vue'
 import Header from '@/components/Header.vue'
-import type { Language } from '@/composables/useCodeIntelligence'; // Импортируем тип, если он экспортирован
-import { computed, ref } from 'vue'
+import type { Language } from '@/types/coder'
+import { ref, watch } from 'vue'
 
-const myCode = ref('<h1>Hello</h1>')
-const currentLang = ref<Language>('html') 
+const myCode      = ref('<h1>Hello</h1>')
+const currentLang = ref<Language>('html')
+const previewFrame = ref<HTMLIFrameElement | null>(null)
 
-const handleLangChange = (lang: Language) => {
-  console.log('Язык изменен на:', lang)
-  currentLang.value = lang
+const handleLangChange = (lang: Language) => { currentLang.value = lang }
+const handleSave       = (code: string)   => { console.log('Сохраняем:', code) }
+
+// ─── Сборка HTML для iframe ───────────────────────────────────────────────────
+
+function buildPreviewHtml(code: string, lang: Language): string {
+  if (lang === 'html') return code
+
+  if (lang === 'css') return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+  * { cursor: none !important; }
+  body { font-family: sans-serif; padding: 16px; }
+  ${code}
+</style></head>
+<body>
+  <div class="container">
+    <h1 class="title">CSS Preview</h1>
+    <p class="description">Демо-элементы для отображения стилей.</p>
+    <button class="demo-btn">Button</button>
+    <ul class="demo-list">
+      <li class="demo-item">Элемент списка 1</li>
+      <li class="demo-item">Элемент списка 2</li>
+    </ul>
+    <a href="#" class="demo-link">Ссылка</a>
+  </div>
+</body></html>`
+
+  // javascript
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+  * { cursor: none !important; }
+  body { font-family: monospace; padding: 16px; background: #1e1e1e; color: #d4d4d4; }
+  #output { white-space: pre-wrap; line-height: 1.6; }
+  .log-line  { padding: 2px 0; }
+  .log-error { color: #f48771; }
+  .log-warn  { color: #cca700; }
+</style></head>
+<body>
+  <div id="output"></div>
+  <script>
+    const out = document.getElementById('output');
+    const line = (text, cls = 'log-line') => {
+      const el = document.createElement('div');
+      el.className = cls;
+      el.textContent = text;
+      out.appendChild(el);
+    };
+    const fmt = a => { try { return typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a) } catch { return String(a) } };
+    console.log   = (...a) => line('> '  + a.map(fmt).join(' '));
+    console.warn  = (...a) => line('⚠ '  + a.join(' '), 'log-line log-warn');
+    console.error = (...a) => line('✖ '  + a.join(' '), 'log-line log-error');
+    try { ${code} } catch(e) { line('✖ ' + e.message, 'log-line log-error'); }
+  <\/script>
+</body></html>`
 }
 
-const handleSave = (code: string) => {
-  console.log('Сохраняем код:', code)
-  // Тут логика сохранения
+// ─── Debounce: превью обновляется через 400мс после последнего символа ────────
+
+let previewTimer = 0
+
+function schedulePreview(code: string, lang: Language): void {
+  clearTimeout(previewTimer)
+  previewTimer = window.setTimeout(() => {
+    const frame = previewFrame.value
+    if (frame) frame.srcdoc = buildPreviewHtml(code, lang)
+  }, 400)
 }
 
-// Логика отображения превью в зависимости от языка
-const previewContent = computed(() => {
-  if (currentLang.value === 'html') {
-    return myCode.value
-  } else if (currentLang.value === 'css') {
-    // Для CSS создаем простую HTML-структуру и применяем стили
-    return `
-      <style>${myCode.value}</style>
-      <div class="demo-box">
-        <h1>CSS Preview</h1>
-        <p>This is a demo element to show your styles.</p>
-        <button class="demo-btn">Button</button>
-      </div>
-    `
-  } else if (currentLang.value === 'javascript') {
-    // Для JS просто показываем сообщение, так как выполнение JS в v-html ограничено
-    return `
-      <div style="padding: 20px; color: #666;">
-        <p>JavaScript execution in preview is limited for security.</p>
-        <p>Open browser console (F12) to see output.</p>
-        <script>
-          try {
-            ${myCode.value}
-          } catch (e) {
-            console.error("Preview Error:", e);
-          }
-        <\/script>
-      </div>
-    `
-  }
-  return myCode.value
+// При смене языка — обновляем сразу (пользователь ждёт переключения)
+watch(currentLang, lang => {
+  clearTimeout(previewTimer)
+  const frame = previewFrame.value
+  if (frame) frame.srcdoc = buildPreviewHtml(myCode.value, lang)
 })
+
+// При вводе — debounce 400мс
+watch(myCode, code => schedulePreview(code, currentLang.value))
+
+// Первый рендер после монтирования iframe
+const onFrameLoad = () => {
+  if (previewFrame.value)
+    previewFrame.value.srcdoc = buildPreviewHtml(myCode.value, currentLang.value)
+}
 </script>
 
 <template>
   <div class="min-h-screen bg-zinc-900 font-sans text-zinc-100 selection:bg-amber-500/30 flex flex-col overflow-hidden">
-    <div class="fixed inset-0 opacity-20 pointer-events-none z-0"
-      style="background-image: radial-gradient(circle, #52525b 1px, transparent 1px); background-size: 28px 28px;"></div>
+    <div
+      class="fixed inset-0 opacity-20 pointer-events-none z-0"
+      style="background-image: radial-gradient(circle, #52525b 1px, transparent 1px); background-size: 28px 28px;"
+    />
 
     <Header />
 
-    <main class="flex-1 flex items-center justify-center p-6 z-10 relative">
-      <div class="flex gap-5 w-full max-w-7xl h-[650px]">
-        
+    <main class="p-6 z-10 relative">
+      <div class="py-3 px-4 w-full bg-gray-700 flex border rounded-xl my-4 items-center gap-2">
+        <span class="text-lg text-blue-200 font-bold">Задание 1</span>
+        <span>Задание 1</span>
+      </div>
+
+      <div class="flex gap-5 w-full h-160">
+
         <!-- Редактор -->
-        <div class="w-1/2 h-full">
-          <InputCode 
-            v-model="myCode" 
-            :initial-language="'html'"
+        <div class="w-full h-full">
+          <InputCode
+            v-model="myCode"
+            :language="currentLang"
             @change-language="handleLangChange"
             @save="handleSave"
           />
         </div>
-        
-        <!-- PREVIEW -->
-        <div class="bg-white w-1/2 border border-zinc-700 rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/5">
-           <div class="px-4 py-2 bg-gray-100 border-b border-gray-200 flex items-center gap-2">
-            <div class="w-2 h-2 rounded-full bg-blue-500"></div>
-            <span class="text-xs font-bold text-gray-600 uppercase tracking-wide">Live Preview ({{ currentLang.toUpperCase() }})</span>
+
+        <!-- Preview -->
+        <div class="bg-white w-full border border-zinc-700 rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/5">
+          <div class="px-4 py-2 bg-gray-100 border-b border-gray-200 flex items-center gap-2 shrink-0">
+            <div class="w-2 h-2 rounded-full bg-blue-500" />
+            <span class="text-xs font-bold text-gray-600 uppercase tracking-wide">
+              Live Preview ({{ currentLang.toUpperCase() }})
+            </span>
           </div>
-          <!-- Используем computed свойство previewContent -->
-          <div class="p-6 text-gray-800 overflow-auto h-full bg-white" v-html="previewContent"></div>
+
+          <iframe
+            ref="previewFrame"
+            class="w-full flex-1 border-none cursor-none"
+            sandbox="allow-scripts"
+            title="Preview"
+            @load="onFrameLoad"
+          />
         </div>
 
       </div>

@@ -15,7 +15,7 @@ services:
       - app-network
 
   frontend:
-    image: node:22-alpine # Явно указываем образ, никаких build
+    image: node:24-alpine # Явно указываем образ, никаких build
     container_name: quiz-frontend-dev
     working_dir: /app
     volumes:
