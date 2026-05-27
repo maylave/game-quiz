@@ -1,146 +1,126 @@
 <script setup lang="ts">
-import InputCode from '@/components/coder/inputCode.vue'
+import CodeEditor from '@/components/coder/inputCode.vue'
 import Header from '@/components/Header.vue'
 import type { Language } from '@/types/coder'
-import { ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-const myCode      = ref('<h1>Hello</h1>')
-const currentLang = ref<Language>('html')
-const previewFrame = ref<HTMLIFrameElement | null>(null)
-
-const handleLangChange = (lang: Language) => { currentLang.value = lang }
-const handleSave       = (code: string)   => { console.log('Сохраняем:', code) }
-
-// ─── Сборка HTML для iframe ───────────────────────────────────────────────────
-
-function buildPreviewHtml(code: string, lang: Language): string {
-  if (lang === 'html') return code
-
-  if (lang === 'css') return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<style>
-  * { cursor: none !important; }
-  body { font-family: sans-serif; padding: 16px; }
-  ${code}
-</style></head>
-<body>
-  <div class="container">
-    <h1 class="title">CSS Preview</h1>
-    <p class="description">Демо-элементы для отображения стилей.</p>
-    <button class="demo-btn">Button</button>
-    <ul class="demo-list">
-      <li class="demo-item">Элемент списка 1</li>
-      <li class="demo-item">Элемент списка 2</li>
-    </ul>
-    <a href="#" class="demo-link">Ссылка</a>
-  </div>
-</body></html>`
-
-  // javascript
-  return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<style>
-  * { cursor: none !important; }
-  body { font-family: monospace; padding: 16px; background: #1e1e1e; color: #d4d4d4; }
-  #output { white-space: pre-wrap; line-height: 1.6; }
-  .log-line  { padding: 2px 0; }
-  .log-error { color: #f48771; }
-  .log-warn  { color: #cca700; }
-</style></head>
-<body>
-  <div id="output"></div>
-  <script>
-    const out = document.getElementById('output');
-    const line = (text, cls = 'log-line') => {
-      const el = document.createElement('div');
-      el.className = cls;
-      el.textContent = text;
-      out.appendChild(el);
-    };
-    const fmt = a => { try { return typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a) } catch { return String(a) } };
-    console.log   = (...a) => line('> '  + a.map(fmt).join(' '));
-    console.warn  = (...a) => line('⚠ '  + a.join(' '), 'log-line log-warn');
-    console.error = (...a) => line('✖ '  + a.join(' '), 'log-line log-error');
-    try { ${code} } catch(e) { line('✖ ' + e.message, 'log-line log-error'); }
-  <\/script>
-</body></html>`
+// ─── Код каждого языка хранится отдельно ──────────────────────────────────────
+const codes = {
+  html:       ref('<h1 class="title">Hello!</h1>\n<p class="desc">Начни писать код...</p>\n<button class="btn" onclick="handleClick()">Нажми меня</button>'),
+  css:        ref('body {\n  font-family: sans-serif;\n  \n  min-height: 100vh;\n  margin: 0;\n  background: #0f172a;\n  color: #e2e8f0;\n}\n.title { font-size: 2rem; font-weight: 700; color: #38bdf8; }\n.desc  { color: #94a3b8; margin: 0.5rem 0 1.5rem; }\n.btn   {\n  padding: 0.5rem 1.5rem;\n  background: #38bdf8;\n  color: #0f172a;\n  border: none;\n  border-radius: 0.5rem;\n  font-size: 1rem;\n  cursor: pointer;\n  transition: opacity .2s;\n}\n.btn:hover { opacity: 0.8; }'),
+  javascript: ref('function handleClick() {\n  const title = document.querySelector(".title")\n  title.style.color = `hsl(${Math.random() * 360}, 80%, 60%)`\n  console.log("Цвет изменён!")\n}'),
 }
 
-// ─── Debounce: превью обновляется через 400мс после последнего символа ────────
+const currentLang  = ref<Language>('html')
+const previewFrame = ref<HTMLIFrameElement | null>(null)
+const frameReady   = ref(false)
+const editorReady  = ref(false)
+
+const TABS: { lang: Language; label: string; active: string; dot: string }[] = [
+  { lang: 'html',       label: 'HTML', active: 'bg-orange-500 text-black',  dot: 'bg-orange-400' },
+  { lang: 'css',        label: 'CSS',  active: 'bg-cyan-500 text-black',    dot: 'bg-cyan-400'   },
+  { lang: 'javascript', label: 'JS',   active: 'bg-yellow-400 text-black',  dot: 'bg-yellow-400' },
+]
+
+// ─── Превью ───────────────────────────────────────────────────────────────────
+
+function renderPreview(): void {
+  const frame = previewFrame.value
+  if (!frame?.contentWindow || !frameReady.value) return
+  frame.contentWindow.postMessage({
+    type: 'preview-update',
+    html: codes.html.value,
+    css:  codes.css.value,
+    js:   codes.javascript.value,
+  }, '*')
+}
+
+function tryRender(): void {
+  if (frameReady.value && editorReady.value) renderPreview()
+}
+
+function onWindowMessage(e: MessageEvent): void {
+  if (e.data?.type === 'frame-ready' || e.data?.type === 'pong') {
+    frameReady.value = true
+    tryRender()
+  }
+}
+
+onMounted(()       => window.addEventListener('message', onWindowMessage))
+onBeforeUnmount(() => window.removeEventListener('message', onWindowMessage))
+
+function onEditorReady(): void { editorReady.value = true; tryRender() }
+function onFrameLoad(): void   { previewFrame.value?.contentWindow?.postMessage({ type: 'ping' }, '*') }
 
 let previewTimer = 0
-
-function schedulePreview(code: string, lang: Language): void {
+watch([codes.html, codes.css, codes.javascript], () => {
   clearTimeout(previewTimer)
-  previewTimer = window.setTimeout(() => {
-    const frame = previewFrame.value
-    if (frame) frame.srcdoc = buildPreviewHtml(code, lang)
-  }, 400)
-}
-
-// При смене языка — обновляем сразу (пользователь ждёт переключения)
-watch(currentLang, lang => {
-  clearTimeout(previewTimer)
-  const frame = previewFrame.value
-  if (frame) frame.srcdoc = buildPreviewHtml(myCode.value, lang)
+  previewTimer = window.setTimeout(renderPreview, 400)
 })
-
-// При вводе — debounce 400мс
-watch(myCode, code => schedulePreview(code, currentLang.value))
-
-// Первый рендер после монтирования iframe
-const onFrameLoad = () => {
-  if (previewFrame.value)
-    previewFrame.value.srcdoc = buildPreviewHtml(myCode.value, currentLang.value)
-}
 </script>
 
 <template>
-  <div class="min-h-screen bg-zinc-900 font-sans text-zinc-100 selection:bg-amber-500/30 flex flex-col overflow-hidden">
-    <div
-      class="fixed inset-0 opacity-20 pointer-events-none z-0"
-      style="background-image: radial-gradient(circle, #52525b 1px, transparent 1px); background-size: 28px 28px;"
-    />
-
+  <div class="h-screen bg-zinc-900 font-sans text-zinc-100 flex flex-col overflow-hidden">
     <Header />
 
-    <main class="p-6 z-10 relative">
-      <div class="py-3 px-4 w-full bg-gray-700 flex border rounded-xl my-4 items-center gap-2">
-        <span class="text-lg text-blue-200 font-bold">Задание 1</span>
-        <span>Задание 1</span>
-      </div>
+    <div class="flex-1 flex overflow-hidden p-3 gap-3 min-h-0">
 
-      <div class="flex gap-5 w-full h-160">
+      <!-- ─── Левая панель: табы + редактор ─── -->
+      <div class="flex-1 flex flex-col min-w-0 gap-2">
 
-        <!-- Редактор -->
-        <div class="w-full h-full">
-          <InputCode
-            v-model="myCode"
-            :language="currentLang"
-            @change-language="handleLangChange"
-            @save="handleSave"
-          />
+        <!-- Табы языков -->
+        <div class="flex items-center gap-1 bg-zinc-800/80 rounded-lg p-1 w-fit">
+          <button
+            v-for="tab in TABS"
+            :key="tab.lang"
+            @click="currentLang = tab.lang"
+            :class="[
+              'flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-md transition-all duration-150',
+              currentLang === tab.lang
+                ? tab.active + ' shadow-sm'
+                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700',
+            ]"
+          >
+            <span
+              :class="['w-1.5 h-1.5 rounded-full', currentLang === tab.lang ? 'bg-current opacity-60' : tab.dot + ' opacity-40']"
+            />
+            {{ tab.label }}
+          </button>
         </div>
 
-        <!-- Preview -->
-        <div class="bg-white w-full border border-zinc-700 rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/5">
-          <div class="px-4 py-2 bg-gray-100 border-b border-gray-200 flex items-center gap-2 shrink-0">
-            <div class="w-2 h-2 rounded-full bg-blue-500" />
-            <span class="text-xs font-bold text-gray-600 uppercase tracking-wide">
-              Live Preview ({{ currentLang.toUpperCase() }})
-            </span>
-          </div>
+        <!-- Редактор — один экземпляр, меняем model-value и язык -->
+        <div class="flex-1 min-h-0">
+          <CodeEditor
+            :model-value="codes[currentLang].value"
+            :initial-language="currentLang"
+            @update:model-value="codes[currentLang].value = $event"
+            @ready="onEditorReady"
+          />
+        </div>
+      </div>
 
+      <!-- ─── Правая панель: превью ─── -->
+      <div class="flex-1 flex flex-col min-w-0 gap-2">
+
+        <!-- Заголовок превью -->
+        <div class="flex items-center gap-2 px-1 h-8">
+          <div class="w-2 h-2 rounded-full bg-blue-400" />
+          <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Live Preview</span>
+        </div>
+
+        <!-- iframe -->
+        <div class="flex-1 min-h-0 bg-white rounded-xl overflow-hidden border border-zinc-700 ring-1 ring-white/5">
           <iframe
             ref="previewFrame"
-            class="w-full flex-1 border-none cursor-none"
-            sandbox="allow-scripts"
+            src="/preview-frame.html"
+            class="w-full h-full border-none"
+            sandbox="allow-scripts allow-same-origin"
             title="Preview"
             @load="onFrameLoad"
           />
         </div>
-
       </div>
-    </main>
+
+    </div>
   </div>
 </template>

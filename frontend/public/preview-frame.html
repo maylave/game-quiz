@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style id="__preview-style"></style>
+</head>
+<body>
+<div id="__preview-body"></div>
+<script>
+  window.addEventListener('message', (e) => {
+    if (!e.data) return
+
+    // Родитель проверяет живой ли iframe
+    if (e.data.type === 'ping') {
+      e.source.postMessage({ type: 'pong' }, '*')
+      return
+    }
+
+    if (e.data.type !== 'preview-update') return
+
+    const { html = '', css = '', js = '' } = e.data
+
+    document.getElementById('__preview-style').textContent = css
+    document.getElementById('__preview-body').innerHTML = html
+
+    const old = document.getElementById('__preview-script')
+    if (old) old.remove()
+
+    if (js.trim()) {
+      const s = document.createElement('script')
+      s.id = '__preview-script'
+      s.textContent = js
+      document.body.appendChild(s)
+    }
+  })
+
+  // Сообщаем родителю что мы готовы принимать сообщения
+  window.parent.postMessage({ type: 'frame-ready' }, '*')
+</script>
+</body>
+</html>
