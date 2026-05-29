@@ -1,9 +1,7 @@
-<!-- components/coder/inputCode.vue -->
 <script setup lang="ts">
 import * as monaco from 'monaco-editor'
 import { nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 
-// Импортируем воркеры как модули Vite
 import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 import CssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker'
 import HtmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker'
@@ -15,6 +13,8 @@ import type { Language } from '@/types/coder'
 const props = defineProps<{
   modelValue?:      string
   initialLanguage?: Language
+  mode?:            'free' | 'course'
+  lockedLines?:     number[]
 }>()
 
 const emit = defineEmits<{
@@ -24,41 +24,85 @@ const emit = defineEmits<{
 }>()
 
 const MONACO_LANG: Record<Language, string> = {
-  html: 'html', 
-  css: 'css', 
-  javascript: 'javascript',
+  html: 'html', css: 'css', javascript: 'javascript',
 }
 
 const FILE_NAMES: Record<Language, string> = {
-  html: 'index.html', 
-  css: 'style.css', 
-  javascript: 'script.js',
+  html: 'index.html', css: 'style.css', javascript: 'script.js',
 }
 
-const containerEl = ref<HTMLElement | null>(null)
-const lang        = ref<Language>(props.initialLanguage ?? 'html')
-const editor      = shallowRef<monaco.editor.IStandaloneCodeEditor | null>(null)
+const containerEl   = ref<HTMLElement | null>(null)
+const lang          = ref<Language>(props.initialLanguage ?? 'html')
+const editor        = shallowRef<monaco.editor.IStandaloneCodeEditor | null>(null)
+const decorationIds = ref<string[]>([])
 
-// Настройка MonacoEnvironment ГЛОБАЛЬНО один раз
+// ─── Воркеры (один раз) ───────────────────────────────────────────────────────
 if (!window.MonacoEnvironment) {
   window.MonacoEnvironment = {
     getWorker(_: unknown, label: string) {
-      if (label === 'json') {
-        return new JsonWorker();
-      }
-      if (label === 'css' || label === 'scss' || label === 'less') {
-        return new CssWorker();
-      }
-      if (label === 'html' || label === 'handlebars' || label === 'razor') {
-        return new HtmlWorker();
-      }
-      if (label === 'typescript' || label === 'javascript') {
-        return new TsWorker();
-      }
-      return new EditorWorker();
+      if (label === 'json')                                    return new JsonWorker()
+      if (label === 'css' || label === 'scss' || label === 'less') return new CssWorker()
+      if (label === 'html' || label === 'handlebars' || label === 'razor') return new HtmlWorker()
+      if (label === 'typescript' || label === 'javascript')   return new TsWorker()
+      return new EditorWorker()
     },
-  };
+  }
 }
+
+// ─── Заблокированные строки ───────────────────────────────────────────────────
+
+function applyLockedLines() {
+  if (!editor.value) return
+  const model = editor.value.getModel()
+  if (!model) return
+
+  const decorations: monaco.editor.IModelDeltaDecoration[] = []
+
+  if (props.mode === 'course' && props.lockedLines?.length) {
+    props.lockedLines.forEach(lineNumber => {
+      decorations.push({
+        range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+        options: {
+          isWholeLine: true,
+          className: 'locked-line-dark-bg',
+          stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
+        },
+      })
+    })
+  }
+
+  decorationIds.value = editor.value.deltaDecorations(decorationIds.value, decorations)
+}
+
+let isRevertingChange = false
+
+function handleContentChange() {
+  if (props.mode !== 'course' || !props.lockedLines?.length || isRevertingChange) return
+  const cursor = editor.value?.getPosition()
+  if (!cursor) return
+  if (props.lockedLines.includes(cursor.lineNumber)) {
+    isRevertingChange = true
+    editor.value!.trigger('keyboard', 'undo', {})
+    isRevertingChange = false
+  }
+}
+
+// ─── Resize: Monaco не следит за контейнером сам ─────────────────────────────
+// Splitpanes меняет размер панели → диспатчит window resize →
+// мы вызываем editor.layout() чтобы Monaco пересчитал и занял всё пространство
+
+let resizeObserver: ResizeObserver | null = null
+
+function setupResizeObserver() {
+  if (!containerEl.value) return
+  // ResizeObserver точнее чем window resize — срабатывает именно на контейнер
+  resizeObserver = new ResizeObserver(() => {
+    editor.value?.layout()
+  })
+  resizeObserver.observe(containerEl.value)
+}
+
+// ─── Монтирование ─────────────────────────────────────────────────────────────
 
 onMounted(async () => {
   if (!containerEl.value) return
@@ -69,42 +113,31 @@ onMounted(async () => {
     language: MONACO_LANG[lang.value],
     theme:    'vs-dark',
 
-    // ── НАСТРОЙКИ ПОДСКАЗОК ───────────────────────────────────
+    // Подсказки
     suggest: {
-      showKeywords: true,
-      showSnippets: true,
-      showClasses: true,
-      showFunctions: true,
-      showVariables: true,
-      showModules: true,
-      showProperties: true,
-      showWords: true,
-      showIcons: true,
-      showColors: true,
+      showKeywords: true, showSnippets: true, showClasses: true,
+      showFunctions: true, showVariables: true, showModules: true,
+      showProperties: true, showWords: true, showIcons: true, showColors: true,
     },
-    suggestOnTriggerCharacters: true,
-    quickSuggestions: {
-      other: true,
-      comments: false,
-      strings: true,
-    },
-    quickSuggestionsDelay: 100,
-    acceptSuggestionOnEnter: 'on',
+    suggestOnTriggerCharacters:        true,
+    quickSuggestions:                  { other: true, comments: false, strings: true },
+    quickSuggestionsDelay:             100,
+    acceptSuggestionOnEnter:           'on',
     acceptSuggestionOnCommitCharacter: true,
-    tabCompletion: 'on',
-    wordBasedSuggestions: 'allDocuments',
-    parameterHints: { enabled: true },
-    inlineSuggest: { enabled: true },
+    tabCompletion:                     'on',
+    wordBasedSuggestions:              'allDocuments',
+    parameterHints:                    { enabled: true },
+    inlineSuggest:                     { enabled: true },
 
-    // ── Форматирование ───────────────────────────────────────
-    formatOnType:  true,
-    formatOnPaste: true,
-    autoIndent:    'full',
+    // Форматирование
+    formatOnType:        true,
+    formatOnPaste:       true,
+    autoIndent:          'full',
     autoClosingBrackets: 'always',
     autoClosingQuotes:   'always',
     autoSurround:        'languageDefined',
 
-    // ── Вид ──────────────────────────────────────────────────
+    // Вид
     fontSize:                  14,
     fontFamily:                "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
     fontLigatures:              true,
@@ -119,7 +152,7 @@ onMounted(async () => {
     bracketPairColorization:    { enabled: true },
     guides:                     { bracketPairs: true, indentation: true },
 
-    // ── Минимализм ───────────────────────────────────────────
+    // Минимализм
     minimap:            { enabled: false },
     scrollbar:          { verticalScrollbarSize: 6, horizontalScrollbarSize: 6 },
     overviewRulerLanes:  0,
@@ -129,7 +162,11 @@ onMounted(async () => {
     wordWrap:           'off',
   })
 
+  applyLockedLines()
+  setupResizeObserver()
+
   editor.value.onDidChangeModelContent(() => {
+    handleContentChange()
     emit('update:modelValue', editor.value!.getValue())
   })
 
@@ -142,8 +179,11 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  resizeObserver?.disconnect()
   editor.value?.dispose()
 })
+
+// ─── Watchers ─────────────────────────────────────────────────────────────────
 
 watch(() => props.modelValue, (newVal) => {
   if (!editor.value || newVal === undefined) return
@@ -151,6 +191,7 @@ watch(() => props.modelValue, (newVal) => {
     const pos = editor.value.getPosition()
     editor.value.setValue(newVal)
     if (pos) editor.value.setPosition(pos)
+    applyLockedLines()
   }
 })
 
@@ -160,8 +201,13 @@ watch(() => props.initialLanguage, (newLang) => {
   const model = editor.value.getModel()
   if (model) {
     monaco.editor.setModelLanguage(model, MONACO_LANG[newLang])
+    applyLockedLines()
   }
 })
+
+watch(() => [props.lockedLines, props.mode], () => {
+  applyLockedLines()
+}, { deep: true })
 </script>
 
 <template>
@@ -169,7 +215,17 @@ watch(() => props.initialLanguage, (newLang) => {
     <div class="px-4 py-2 bg-[#2d2d2d] border-b border-black/30 flex items-center gap-2 select-none shrink-0">
       <span class="w-2.5 h-2.5 rounded-full bg-amber-500/40 border border-amber-500/60" />
       <span class="text-xs font-medium text-zinc-400">{{ FILE_NAMES[lang] }}</span>
+      <span v-if="props.mode === 'course'" class="ml-auto text-[10px] uppercase font-bold text-green-400 tracking-widest">
+        Course Mode
+      </span>
     </div>
-    <div ref="containerEl" class="flex-1 overflow-hidden" />
+    <div ref="containerEl" class="flex-1 overflow-hidden w-full" />
   </div>
 </template>
+
+<style scoped>
+:deep(.locked-line-dark-bg) {
+  background-color: rgba(0, 0, 0, 0.25) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+</style>
